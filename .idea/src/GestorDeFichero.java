@@ -8,6 +8,10 @@ public class GestorDeFichero {
         this.rutaFichero = rutaFichero;
     }
 
+    public String ajustarTexto(String texto, int longitudMaxima){
+        if (texto.length() > longitudMaxima){
 
+        }
+    }
 
 }
