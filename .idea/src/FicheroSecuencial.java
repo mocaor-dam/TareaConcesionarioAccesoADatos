@@ -10,7 +10,8 @@ import java.util.Map;
  * Clase que simula un Sistema Gestor de Base de Datos apoyado en un
  * fichero binario de acceso secuencial y registros de LONGITUD FIJA.
  */
-public class FicheroSecuencial {
+public class
+FicheroSecuencial {
 
     private static final byte BYTE_ESPACIO = (byte) ' ';
 
