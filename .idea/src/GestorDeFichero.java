@@ -1,62 +1,69 @@
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 public class GestorDeFichero {
-    private static final byte BYTE_ESPACIO = (byte) ' ';
 
-
-    private static final String MATRICULA = "matricula";
-    private static final String MARCA = "MARCA";
-    private static final String MODELO = "MODELO";
-
-    private static final int LONGITUD_MAT = 7;
-    private static final int LONGITUD_MARCA_MODELO = 32;
-
-    private final int MAXBYTEMATRICULA = 7;
-    private final int MAXBYTEMARCA = 32;
-    private final int MAXBYTEMODELO = 32;
+    private static final int MAXBYTEMATRICULA = 7;
+    private static final int MAXBYTEMARCA = 32;
+    private static final int MAXBYTEMODELO = 32;
+    private static final int TAM_REGISTRO = MAXBYTEMARCA + MAXBYTEMODELO + MAXBYTEMATRICULA;
     private String rutaFichero;
 
     public GestorDeFichero(String rutaFichero) {
         this.rutaFichero = rutaFichero;
     }
 
-    public String ajustarTexto(String texto, int longitudMaxima) {
-        if (texto.length() > longitudMaxima) {
-            texto = texto.substring(0, longitudMaxima);
-        }
 
-        while (texto.length() < longitudMaxima) {
-            texto = texto + " ";
-        }
+    private byte[] formatearCadena(String texto, int longitud){
+        byte[] resultado = new byte[longitud];
 
-        return texto;
+        Arrays.fill(resultado, (byte) ' ');
+
+        if (texto != null){
+            byte[] textoBytes = texto.getBytes(StandardCharsets.UTF_8);
+            System.arraycopy(textoBytes, 0, resultado, 0, Math.min(textoBytes.length, longitud));
+        }
+        return resultado;
     }
 
 
+    public void insertarCoche(int posicion, String matricula, String marca, String modelo){
+        try (RandomAccessFile raf = new RandomAccessFile(this.rutaFichero, "rw")){
 
+            long totalRegistros = raf.length() / TAM_REGISTRO;
 
+            if (posicion < 0 || posicion > totalRegistros){
+                System.out.println("Error: Posicion fuera de limites.");
+                return;
+            }
 
-    private byte[] formatearABytesFijos(String nombreCampo, String texto, int longitudFija) {
-        byte[] bytesOriginales = texto.getBytes(StandardCharsets.UTF_8);
+            for (long i = totalRegistros - 1;i >= posicion; i--){
+                // Leer el registro de la posición 'i'
+                raf.seek(i * TAM_REGISTRO);
+                byte[] registroTemp = new byte[TAM_REGISTRO];
+                raf.read(registroTemp);
 
-        if (bytesOriginales.length > longitudFija) {
-            throw new IllegalArgumentException(
-                    String.format("El campo '%s' ocupa %d bytes (máximo permitido: %d bytes).",
-                            nombreCampo, bytesOriginales.length, longitudFija)
-            );
+                // Escribirlo en la posición 'i + 1'
+                raf.seek((i + 1) * TAM_REGISTRO);
+                raf.write(registroTemp);
+            }
+
+            byte[] bMatricula = formatearCadena(matricula, MAXBYTEMATRICULA);
+            byte[] bMarca = formatearCadena(marca, MAXBYTEMARCA);
+            byte[] bModelo = formatearCadena(modelo, MAXBYTEMODELO);
+
+            raf.seek(posicion * TAM_REGISTRO); // Nos colocamos en la posición exacta
+            raf.write(bMatricula);
+            raf.write(bMarca);
+            raf.write(bModelo);
+
+            System.out.println("Coche insertado con éxito en la posición " + posicion);
+
+        } catch (IOException e){
+            System.out.println(e.getMessage());
         }
-
-        byte[] bytesResultantes = new byte[longitudFija];
-        Arrays.fill(bytesResultantes, BYTE_ESPACIO);
-        System.arraycopy(bytesOriginales, 0, bytesResultantes, 0, bytesOriginales.length);
-
-        return bytesResultantes;
-    }
-
-    private String extraerStringDeBytes(byte[] buffer, int offset, int longitud) {
-        String texto = new String(buffer, offset, longitud, StandardCharsets.UTF_8);
-        return texto.trim();
     }
 
 }
